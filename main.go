@@ -21,8 +21,16 @@ type CommandEntry struct {
 
 func main() {
 	// Define command-line flags
-	includeDeleted := flag.Bool("include-deleted", false, "Include deleted commands")
-	reverseOrder := flag.Bool("reverse", false, "Reverse the sort order (oldest first)")
+	var includeDeleted bool
+	var reverseOrder bool
+	var printNull bool
+
+	flag.BoolVar(&includeDeleted, "include-deleted", false, "Include deleted commands")
+	flag.BoolVar(&includeDeleted, "d", false, "Include deleted commands (shorthand)")
+	flag.BoolVar(&reverseOrder, "reverse", false, "Reverse the sort order (oldest first)")
+	flag.BoolVar(&reverseOrder, "r", false, "Reverse the sort order (shorthand)")
+	flag.BoolVar(&printNull, "print0", false, "Use null character as record separator")
+	flag.BoolVar(&printNull, "0", false, "Use null character as record separator (shorthand)")
 	flag.Parse()
 
 	// Get the database path
@@ -34,13 +42,13 @@ func main() {
 	dbPath := filepath.Join(homeDir, ".local", "share", "atuin", "history.db")
 
 	// Process the database and output results
-	if err := processHistory(dbPath, *includeDeleted, *reverseOrder); err != nil {
+	if err := processHistory(dbPath, includeDeleted, reverseOrder, printNull); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
 }
 
-func processHistory(dbPath string, includeDeleted, reverseOrder bool) error {
+func processHistory(dbPath string, includeDeleted, reverseOrder, printNull bool) error {
 	// Open the database
 	db, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
@@ -131,7 +139,11 @@ func processHistory(dbPath string, includeDeleted, reverseOrder bool) error {
 	
 	// Output the results
 	for _, entry := range commands {
-		fmt.Printf("%s │ %*d │ %s%c", entry.LastUsedStr, countWidth, entry.Count, entry.Command, 0)
+		recordSeparator := '\n'
+		if printNull {
+			recordSeparator = 0
+		}
+		fmt.Printf("%s │ %*d │ %s%c", entry.LastUsedStr, countWidth, entry.Count, entry.Command, recordSeparator)
 	}
 
 	return nil
