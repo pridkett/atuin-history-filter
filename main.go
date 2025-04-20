@@ -15,7 +15,7 @@ import (
 type CommandEntry struct {
 	Command     string
 	Count       int
-	LastUsed    int64 // Unix timestamp
+	LastUsed    int64  // Unix timestamp in nanoseconds
 	LastUsedStr string // Formatted date string
 }
 
@@ -63,6 +63,8 @@ func processHistory(dbPath string, includeDeleted, reverseOrder bool) error {
 
 	// Process the results
 	commandMap := make(map[string]*CommandEntry)
+	maxCount := 0 // Track the maximum count for padding
+	
 	for rows.Next() {
 		var command string
 		var timestamp int64
@@ -90,12 +92,18 @@ func processHistory(dbPath string, includeDeleted, reverseOrder bool) error {
 
 		// Increment the count
 		entry.Count++
+		
+		// Update max count if needed
+		if entry.Count > maxCount {
+			maxCount = entry.Count
+		}
 
 		// Update the last used timestamp if this is more recent
 		if timestamp > entry.LastUsed {
 			entry.LastUsed = timestamp
 			// Format the timestamp as YYYY-MM-DD hh:mm:ss
-			t := time.Unix(timestamp/1000000, 0) // Convert microseconds to seconds
+			// Timestamp is in nanoseconds since epoch
+			t := time.Unix(0, timestamp)
 			entry.LastUsedStr = t.Format("2006-01-02 15:04:05")
 		}
 	}
@@ -118,9 +126,12 @@ func processHistory(dbPath string, includeDeleted, reverseOrder bool) error {
 		return commands[i].LastUsed > commands[j].LastUsed
 	})
 
+	// Calculate the width needed for the count column
+	countWidth := len(fmt.Sprintf("%d", maxCount))
+	
 	// Output the results
 	for _, entry := range commands {
-		fmt.Printf("%s │ %d │ %s%c", entry.LastUsedStr, entry.Count, entry.Command, 0)
+		fmt.Printf("%s │ %*d │ %s%c", entry.LastUsedStr, countWidth, entry.Count, entry.Command, 0)
 	}
 
 	return nil
