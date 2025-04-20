@@ -143,7 +143,7 @@ func processHistory(dbPath string, includeDeleted, reverseOrder, printNull bool)
 		if printNull {
 			recordSeparator = 0
 		}
-		fmt.Printf("%s │ %*d │ %s%c", entry.LastUsedStr, countWidth, entry.Count, entry.Command, recordSeparator)
+		fmt.Printf("%s ║ %*d ║ %s%c", entry.LastUsedStr, countWidth, entry.Count, entry.Command, recordSeparator)
 	}
 
 	return nil
