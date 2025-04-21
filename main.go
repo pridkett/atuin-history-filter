@@ -27,6 +27,7 @@ func main() {
 	var cwdDir string
 	var session string
 	var dbPath string
+	var fieldSeparator string
 
 	pflag.BoolVarP(&includeDeleted, "include-deleted", "d", false, "Include deleted commands")
 	pflag.BoolVarP(&reverseOrder, "reverse", "r", false, "Reverse the sort order (oldest first)")
@@ -34,6 +35,7 @@ func main() {
 	pflag.StringVarP(&cwdDir, "cwd", "c", "", "limit search to a specific directory")
 	pflag.StringVarP(&session, "session", "s", "", "limit search to a specific session")
 	pflag.StringVarP(&dbPath, "db", "", "", "Path to the database file")
+	pflag.StringVarP(&fieldSeparator, "fieldsep", "f", " ║ ", "Field separator for output")
 
 	pflag.Lookup("cwd").NoOptDefVal = getCurrentWorkingDir()
 	pflag.Lookup("session").NoOptDefVal = os.Getenv("ATUIN_SESSION")
@@ -51,7 +53,7 @@ func main() {
 	}
 
 	// Process the database and output results
-	if err := processHistory(dbPath, includeDeleted, reverseOrder, printNull, cwdDir, session); err != nil {
+	if err := processHistory(dbPath, includeDeleted, reverseOrder, printNull, cwdDir, session, fieldSeparator); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		fmt.Fprintf(os.Stderr, "dbPath: %v\n", dbPath)
 		fmt.Fprintf(os.Stderr, "cwdDir: %v\n", cwdDir)
@@ -72,7 +74,7 @@ func getCurrentWorkingDir() string {
 	return dir
 }
 
-func processHistory(dbPath string, includeDeleted, reverseOrder, printNull bool, cwdDir string, session string) error {
+func processHistory(dbPath string, includeDeleted, reverseOrder, printNull bool, cwdDir string, session string, fieldSeparator string) error {
 	whereClausePresent := false
 
 	// Open the database
@@ -189,7 +191,7 @@ func processHistory(dbPath string, includeDeleted, reverseOrder, printNull bool,
 		if printNull {
 			recordSeparator = 0
 		}
-		fmt.Printf("%s ║ %*d ║ %s%c", entry.LastUsedStr, countWidth, entry.Count, entry.Command, recordSeparator)
+		fmt.Printf("%s %s %*d %s %s%c", entry.LastUsedStr, fieldSeparator, countWidth, entry.Count, fieldSeparator, entry.Command, recordSeparator)
 	}
 
 	return nil
