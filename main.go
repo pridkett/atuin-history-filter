@@ -24,10 +24,15 @@ func main() {
 	var includeDeleted bool
 	var reverseOrder bool
 	var printNull bool
+	var cwdDir string
 
 	pflag.BoolVarP(&includeDeleted, "include-deleted", "d", false, "Include deleted commands")
 	pflag.BoolVarP(&reverseOrder, "reverse", "r", false, "Reverse the sort order (oldest first)")
 	pflag.BoolVarP(&printNull, "print0", "0", false, "Use null character as record separator")
+	pflag.StringVarP(&cwdDir, "cwd", "c", "", "limit search to a specific directory")
+
+	pflag.Lookup("cwd").NoOptDefVal = getCurrentWorkingDir()
+
 	pflag.Parse()
 
 	// Get the database path
@@ -39,13 +44,24 @@ func main() {
 	dbPath := filepath.Join(homeDir, ".local", "share", "atuin", "history.db")
 
 	// Process the database and output results
-	if err := processHistory(dbPath, includeDeleted, reverseOrder, printNull); err != nil {
+	if err := processHistory(dbPath, includeDeleted, reverseOrder, printNull, cwdDir); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
 }
 
-func processHistory(dbPath string, includeDeleted, reverseOrder, printNull bool) error {
+func getCurrentWorkingDir() string {
+	dir, err := os.Getwd()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error getting current working directory: %v\n", err)
+		os.Exit(1)
+	}
+	return dir
+}
+
+func processHistory(dbPath string, includeDeleted, reverseOrder, printNull bool, cwdDir string) error {
+	whereClausePresent := false
+
 	// Open the database
 	db, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
@@ -57,6 +73,15 @@ func processHistory(dbPath string, includeDeleted, reverseOrder, printNull bool)
 	query := "SELECT command, timestamp, deleted_at FROM history"
 	if !includeDeleted {
 		query += " WHERE deleted_at IS NULL"
+		whereClausePresent = true
+	}
+	if cwdDir != "" {
+		if !whereClausePresent {
+			query += " WHERE"
+		} else {
+			query += " AND"
+		}
+		query += fmt.Sprintf(" cwd = '%s'", cwdDir)
 	}
 
 	// Execute the query
