@@ -8,8 +8,8 @@ import (
 	"sort"
 	"time"
 
-	"github.com/spf13/pflag"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/spf13/pflag"
 )
 
 type CommandEntry struct {
@@ -96,7 +96,7 @@ func processHistory(dbPath string, includeDeleted, reverseOrder, printNull bool,
 	// Process the results
 	commandMap := make(map[string]*CommandEntry)
 	maxCount := 0 // Track the maximum count for padding
-	
+
 	for rows.Next() {
 		var command string
 		var timestamp int64
@@ -124,7 +124,7 @@ func processHistory(dbPath string, includeDeleted, reverseOrder, printNull bool,
 
 		// Increment the count
 		entry.Count++
-		
+
 		// Update max count if needed
 		if entry.Count > maxCount {
 			maxCount = entry.Count
@@ -160,7 +160,7 @@ func processHistory(dbPath string, includeDeleted, reverseOrder, printNull bool,
 
 	// Calculate the width needed for the count column
 	countWidth := len(fmt.Sprintf("%d", maxCount))
-	
+
 	// Output the results
 	for _, entry := range commands {
 		recordSeparator := '\n'
