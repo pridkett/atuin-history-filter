@@ -25,13 +25,16 @@ func main() {
 	var reverseOrder bool
 	var printNull bool
 	var cwdDir string
+	var session string
 
 	pflag.BoolVarP(&includeDeleted, "include-deleted", "d", false, "Include deleted commands")
 	pflag.BoolVarP(&reverseOrder, "reverse", "r", false, "Reverse the sort order (oldest first)")
 	pflag.BoolVarP(&printNull, "print0", "0", false, "Use null character as record separator")
 	pflag.StringVarP(&cwdDir, "cwd", "c", "", "limit search to a specific directory")
+	pflag.StringVarP(&session, "session", "s", "", "limit search to a specific session")
 
 	pflag.Lookup("cwd").NoOptDefVal = getCurrentWorkingDir()
+	pflag.Lookup("session").NoOptDefVal = os.Getenv("ATUIN_SESSION")
 
 	pflag.Parse()
 
@@ -44,7 +47,7 @@ func main() {
 	dbPath := filepath.Join(homeDir, ".local", "share", "atuin", "history.db")
 
 	// Process the database and output results
-	if err := processHistory(dbPath, includeDeleted, reverseOrder, printNull, cwdDir); err != nil {
+	if err := processHistory(dbPath, includeDeleted, reverseOrder, printNull, cwdDir, session); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
@@ -59,7 +62,7 @@ func getCurrentWorkingDir() string {
 	return dir
 }
 
-func processHistory(dbPath string, includeDeleted, reverseOrder, printNull bool, cwdDir string) error {
+func processHistory(dbPath string, includeDeleted, reverseOrder, printNull bool, cwdDir string, session string) error {
 	whereClausePresent := false
 
 	// Open the database
@@ -84,6 +87,15 @@ func processHistory(dbPath string, includeDeleted, reverseOrder, printNull bool,
 		}
 		query += " cwd = ?"
 		args = append(args, cwdDir)
+	}
+	if session != "" {
+		if !whereClausePresent {
+			query += " WHERE"
+		} else {
+			query += " AND"
+		}
+		query += " session = ?"
+		args = append(args, session)
 	}
 
 	// Execute the query
