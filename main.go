@@ -29,6 +29,8 @@ func main() {
 	var dbPath string
 	var fieldSeparator string
 	var ansiEnabled bool
+	var header bool
+	var headerLast bool
 
 	pflag.BoolVarP(&includeDeleted, "include-deleted", "d", false, "Include deleted commands")
 	pflag.BoolVarP(&reverseOrder, "reverse", "r", false, "Reverse the sort order (oldest first)")
@@ -38,6 +40,8 @@ func main() {
 	pflag.StringVarP(&dbPath, "db", "", "", "Path to the database file")
 	pflag.StringVarP(&fieldSeparator, "fieldsep", "f", "║", "Field separator for output")
 	pflag.BoolVarP(&ansiEnabled, "ansi", "a", false, "Enable ANSI colors")
+	pflag.BoolVar(&header, "header", false, "Print header before results")
+	pflag.BoolVar(&headerLast, "header-last", false, "Print header after results")
 
 	pflag.Lookup("cwd").NoOptDefVal = getCurrentWorkingDir()
 	pflag.Lookup("session").NoOptDefVal = os.Getenv("ATUIN_SESSION")
@@ -55,7 +59,7 @@ func main() {
 	}
 
 	// Process the database and output results
-	if err := processHistory(dbPath, includeDeleted, reverseOrder, printNull, cwdDir, session, fieldSeparator, ansiEnabled); err != nil {
+	if err := processHistory(dbPath, includeDeleted, reverseOrder, printNull, cwdDir, session, fieldSeparator, ansiEnabled, header, headerLast); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		fmt.Fprintf(os.Stderr, "dbPath: %v\n", dbPath)
 		fmt.Fprintf(os.Stderr, "cwdDir: %v\n", cwdDir)
@@ -63,7 +67,9 @@ func main() {
 		fmt.Fprintf(os.Stderr, "includeDeleted: %v\n", includeDeleted)
 		fmt.Fprintf(os.Stderr, "reverseOrder: %v\n", reverseOrder)
 		fmt.Fprintf(os.Stderr, "printNull: %v\n", printNull)
+		fmt.Fprintf(os.Stderr, "header: %v\n", header)
 		fmt.Fprintf(os.Stderr, "ansiEnabled: %v\n", ansiEnabled)
+		fmt.Fprintf(os.Stderr, "header-last: %v\n", headerLast)
 		os.Exit(1)
 	}
 }
@@ -77,7 +83,7 @@ func getCurrentWorkingDir() string {
 	return dir
 }
 
-func processHistory(dbPath string, includeDeleted, reverseOrder, printNull bool, cwdDir string, session string, fieldSeparator string, ansiEnabled bool) error {
+func processHistory(dbPath string, includeDeleted, reverseOrder, printNull bool, cwdDir string, session string, fieldSeparator string, ansiEnabled bool, header bool, headerLast bool) error {
 	whereClausePresent := false
 
 	// Open the database
@@ -187,6 +193,12 @@ func processHistory(dbPath string, includeDeleted, reverseOrder, printNull bool,
 
 	// Calculate the width needed for the count column
 	countWidth := len(fmt.Sprintf("%d", maxCount))
+	// Ensure header width for 'COUNT'
+	if countWidth < len("COUNT") && (header || headerLast) {
+		countWidth = len("COUNT")
+	}
+	// Determine column width for time strings (e.g. "2025-04-21 12:34:56")
+	timeWidth := len("2006-01-02 15:04:05")
 
 	// ANSI color codes (conditionally enabled)
 	purpleColor, blueColor, greenColor, resetColor := "", "", "", ""
@@ -195,6 +207,17 @@ func processHistory(dbPath string, includeDeleted, reverseOrder, printNull bool,
 		blueColor = "\033[94m"   // bright blue
 		greenColor = "\033[92m"  // bright green
 		resetColor = "\033[0m"
+	}
+
+	// Print header if requested
+	if header {
+		// Header: TIME, padded COUNT, COMMAND with colors (left-justified)
+		fmt.Printf("%s%-*s%s %s%s%s %s%-*s%s %s%s%s %s%c",
+			purpleColor, timeWidth, "TIME", resetColor,
+			blueColor, fieldSeparator, resetColor,
+			greenColor, countWidth, "COUNT", resetColor,
+			blueColor, fieldSeparator, resetColor,
+			"COMMAND", '\n')
 	}
 
 	// Output the results
@@ -212,6 +235,17 @@ func processHistory(dbPath string, includeDeleted, reverseOrder, printNull bool,
 			blueColor, fieldSeparator, resetColor,
 			entry.Command,
 			recordSeparator)
+	}
+
+	// Print header at end if requested
+	if headerLast {
+		// Header: TIME, padded COUNT, COMMAND with colors (left-justified)
+		fmt.Printf("%s%-*s%s %s%s%s %s%-*s%s %s%s%s %s%c",
+			purpleColor, timeWidth, "TIME", resetColor,
+			blueColor, fieldSeparator, resetColor,
+			greenColor, countWidth, "COUNT", resetColor,
+			blueColor, fieldSeparator, resetColor,
+			"COMMAND", '\n')
 	}
 
 	return nil
