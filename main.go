@@ -36,7 +36,7 @@ func main() {
 	pflag.StringVarP(&cwdDir, "cwd", "c", "", "limit search to a specific directory")
 	pflag.StringVarP(&session, "session", "s", "", "limit search to a specific session")
 	pflag.StringVarP(&dbPath, "db", "", "", "Path to the database file")
-	pflag.StringVarP(&fieldSeparator, "fieldsep", "f", " ║ ", "Field separator for output")
+	pflag.StringVarP(&fieldSeparator, "fieldsep", "f", "║", "Field separator for output")
 	pflag.BoolVarP(&ansiEnabled, "ansi", "a", false, "Enable ANSI colors")
 
 	pflag.Lookup("cwd").NoOptDefVal = getCurrentWorkingDir()
