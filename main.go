@@ -28,6 +28,7 @@ func main() {
 	var session string
 	var dbPath string
 	var fieldSeparator string
+	var ansiEnabled bool
 
 	pflag.BoolVarP(&includeDeleted, "include-deleted", "d", false, "Include deleted commands")
 	pflag.BoolVarP(&reverseOrder, "reverse", "r", false, "Reverse the sort order (oldest first)")
@@ -36,6 +37,7 @@ func main() {
 	pflag.StringVarP(&session, "session", "s", "", "limit search to a specific session")
 	pflag.StringVarP(&dbPath, "db", "", "", "Path to the database file")
 	pflag.StringVarP(&fieldSeparator, "fieldsep", "f", " ║ ", "Field separator for output")
+	pflag.BoolVarP(&ansiEnabled, "ansi", "a", false, "Enable ANSI colors")
 
 	pflag.Lookup("cwd").NoOptDefVal = getCurrentWorkingDir()
 	pflag.Lookup("session").NoOptDefVal = os.Getenv("ATUIN_SESSION")
@@ -53,7 +55,7 @@ func main() {
 	}
 
 	// Process the database and output results
-	if err := processHistory(dbPath, includeDeleted, reverseOrder, printNull, cwdDir, session, fieldSeparator); err != nil {
+	if err := processHistory(dbPath, includeDeleted, reverseOrder, printNull, cwdDir, session, fieldSeparator, ansiEnabled); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		fmt.Fprintf(os.Stderr, "dbPath: %v\n", dbPath)
 		fmt.Fprintf(os.Stderr, "cwdDir: %v\n", cwdDir)
@@ -61,6 +63,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "includeDeleted: %v\n", includeDeleted)
 		fmt.Fprintf(os.Stderr, "reverseOrder: %v\n", reverseOrder)
 		fmt.Fprintf(os.Stderr, "printNull: %v\n", printNull)
+		fmt.Fprintf(os.Stderr, "ansiEnabled: %v\n", ansiEnabled)
 		os.Exit(1)
 	}
 }
@@ -74,7 +77,7 @@ func getCurrentWorkingDir() string {
 	return dir
 }
 
-func processHistory(dbPath string, includeDeleted, reverseOrder, printNull bool, cwdDir string, session string, fieldSeparator string) error {
+func processHistory(dbPath string, includeDeleted, reverseOrder, printNull bool, cwdDir string, session string, fieldSeparator string, ansiEnabled bool) error {
 	whereClausePresent := false
 
 	// Open the database
@@ -185,13 +188,30 @@ func processHistory(dbPath string, includeDeleted, reverseOrder, printNull bool,
 	// Calculate the width needed for the count column
 	countWidth := len(fmt.Sprintf("%d", maxCount))
 
+	// ANSI color codes (conditionally enabled)
+	purpleColor, blueColor, greenColor, resetColor := "", "", "", ""
+	if ansiEnabled {
+		purpleColor = "\033[95m" // bright purple
+		blueColor = "\033[94m"   // bright blue
+		greenColor = "\033[92m"  // bright green
+		resetColor = "\033[0m"
+	}
+
 	// Output the results
 	for _, entry := range commands {
 		recordSeparator := '\n'
 		if printNull {
 			recordSeparator = 0
 		}
-		fmt.Printf("%s %s %*d %s %s%c", entry.LastUsedStr, fieldSeparator, countWidth, entry.Count, fieldSeparator, entry.Command, recordSeparator)
+
+		// Colored output: purple timestamp, blue separators, green count
+		fmt.Printf("%s%s%s %s%s%s %s%*d%s %s%s%s %s%c",
+			purpleColor, entry.LastUsedStr, resetColor,
+			blueColor, fieldSeparator, resetColor,
+			greenColor, countWidth, entry.Count, resetColor,
+			blueColor, fieldSeparator, resetColor,
+			entry.Command,
+			recordSeparator)
 	}
 
 	return nil
