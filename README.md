@@ -32,11 +32,11 @@ That will just show your history and have it return just the command from the ou
 ```fish
 function _fzf_atuin_search_history --description "Use atuin and fzf to search command history. Replace the command line with the selected command."
 
-	# use Gruvbox Dark color scheme in FZF
+    # use Gruvbox Dark color scheme in FZF
     set FZF_DEFAULT_OPTS '--color=bg+:#3c3836,bg:#32302f,spinner:#fb4934,hl:#928374,fg:#ebdbb2,header:#928374,info:#8ec07c,pointer:#fb4934,marker:#fb4934,fg+:#ebdbb2,prompt:#fb4934,hl+:#fb4934'
 
     # use the ║ (double vertical bar) as separator - this is better than
-	# a comma or pipe because it far less common of a string
+    # a comma or pipe because it far less common of a string
     set -f new_command (
         atuin-history-filter -print0 | fzf --read0 --scheme=history --multi --delimiter ║ --nth 3.. --accept-nth 3.. --prompt "History> " --preview-window="bottom:3:wrap" --preview="string replace --regex '^.*?║.*?║ ' '' -- {} | fish_indent --ansi" --print0 | string split0
     )
