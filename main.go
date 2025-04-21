@@ -2,13 +2,13 @@ package main
 
 import (
 	"database/sql"
-	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
 	"time"
 
+	"github.com/spf13/pflag"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -25,13 +25,10 @@ func main() {
 	var reverseOrder bool
 	var printNull bool
 
-	flag.BoolVar(&includeDeleted, "include-deleted", false, "Include deleted commands")
-	flag.BoolVar(&includeDeleted, "d", false, "Include deleted commands (shorthand)")
-	flag.BoolVar(&reverseOrder, "reverse", false, "Reverse the sort order (oldest first)")
-	flag.BoolVar(&reverseOrder, "r", false, "Reverse the sort order (shorthand)")
-	flag.BoolVar(&printNull, "print0", false, "Use null character as record separator")
-	flag.BoolVar(&printNull, "0", false, "Use null character as record separator (shorthand)")
-	flag.Parse()
+	pflag.BoolVarP(&includeDeleted, "include-deleted", "d", false, "Include deleted commands")
+	pflag.BoolVarP(&reverseOrder, "reverse", "r", false, "Reverse the sort order (oldest first)")
+	pflag.BoolVarP(&printNull, "print0", "0", false, "Use null character as record separator")
+	pflag.Parse()
 
 	// Get the database path
 	homeDir, err := os.UserHomeDir()
