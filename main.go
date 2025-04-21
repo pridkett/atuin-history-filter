@@ -26,12 +26,14 @@ func main() {
 	var printNull bool
 	var cwdDir string
 	var session string
+	var dbPath string
 
 	pflag.BoolVarP(&includeDeleted, "include-deleted", "d", false, "Include deleted commands")
 	pflag.BoolVarP(&reverseOrder, "reverse", "r", false, "Reverse the sort order (oldest first)")
 	pflag.BoolVarP(&printNull, "print0", "0", false, "Use null character as record separator")
 	pflag.StringVarP(&cwdDir, "cwd", "c", "", "limit search to a specific directory")
 	pflag.StringVarP(&session, "session", "s", "", "limit search to a specific session")
+	pflag.StringVarP(&dbPath, "db", "", "", "Path to the database file")
 
 	pflag.Lookup("cwd").NoOptDefVal = getCurrentWorkingDir()
 	pflag.Lookup("session").NoOptDefVal = os.Getenv("ATUIN_SESSION")
@@ -39,16 +41,24 @@ func main() {
 	pflag.Parse()
 
 	// Get the database path
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error getting home directory: %v\n", err)
-		os.Exit(1)
+	if dbPath == "" {
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error getting home directory: %v\n", err)
+			os.Exit(1)
+		}
+		dbPath = filepath.Join(homeDir, ".local", "share", "atuin", "history.db")
 	}
-	dbPath := filepath.Join(homeDir, ".local", "share", "atuin", "history.db")
 
 	// Process the database and output results
 	if err := processHistory(dbPath, includeDeleted, reverseOrder, printNull, cwdDir, session); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "dbPath: %v\n", dbPath)
+		fmt.Fprintf(os.Stderr, "cwdDir: %v\n", cwdDir)
+		fmt.Fprintf(os.Stderr, "session: %v\n", session)
+		fmt.Fprintf(os.Stderr, "includeDeleted: %v\n", includeDeleted)
+		fmt.Fprintf(os.Stderr, "reverseOrder: %v\n", reverseOrder)
+		fmt.Fprintf(os.Stderr, "printNull: %v\n", printNull)
 		os.Exit(1)
 	}
 }
