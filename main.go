@@ -71,6 +71,7 @@ func processHistory(dbPath string, includeDeleted, reverseOrder, printNull bool,
 
 	// Build the query
 	query := "SELECT command, timestamp, deleted_at FROM history"
+	var args []interface{}
 	if !includeDeleted {
 		query += " WHERE deleted_at IS NULL"
 		whereClausePresent = true
@@ -81,11 +82,12 @@ func processHistory(dbPath string, includeDeleted, reverseOrder, printNull bool,
 		} else {
 			query += " AND"
 		}
-		query += fmt.Sprintf(" cwd = '%s'", cwdDir)
+		query += " cwd = ?"
+		args = append(args, cwdDir)
 	}
 
 	// Execute the query
-	rows, err := db.Query(query)
+	rows, err := db.Query(query, args...)
 	if err != nil {
 		return fmt.Errorf("failed to query database: %w", err)
 	}
