@@ -9,7 +9,7 @@ This is a really simple little golang program that I created because I wanted a 
 
 That's where this program comes in.
 
-installation
+Installation
 ------------
 
 This is a golang program and pretty simple one at that. It really only works on systems where you can find your atuin history in `~/.local/share/atuin/history.db`. It also relies on the schema of atuin not really changing.
@@ -32,13 +32,29 @@ That will just show your history and have it return just the command from the ou
 ```fish
 function _fzf_atuin_search_history --description "Use atuin and fzf to search command history. Replace the command line with the selected command."
 
-    # use Gruvbox Dark color scheme in FZF
+	# not strictly needed - but these are gruvbox colors for fzf
     set FZF_DEFAULT_OPTS '--color=bg+:#3c3836,bg:#32302f,spinner:#fb4934,hl:#928374,fg:#ebdbb2,header:#928374,info:#8ec07c,pointer:#fb4934,marker:#fb4934,fg+:#ebdbb2,prompt:#fb4934,hl+:#fb4934'
 
-    # use the ║ (double vertical bar) as separator - this is better than
-    # a comma or pipe because it far less common of a string
+    # use the │  (vertical bar) as separator - note: this is not a pipe
     set -f new_command (
-        atuin-history-filter -print0 | fzf --read0 --scheme=history --multi --delimiter ║ --nth 3.. --accept-nth 3.. --prompt "History> " --preview-window="bottom:3:wrap" --preview="string replace --regex '^.*?║.*?║ ' '' -- {} | fish_indent --ansi" --print0 | string split0
+        atuin-history-filter --print0 --ansi --header | 
+        fzf --read0 \
+            --ansi \
+            --scheme=history \
+            --multi \
+            --delimiter ║\
+            --nth 3.. \
+            --accept-nth 3.. \
+            --prompt "History> " \
+            --preview-window="bottom:3:wrap" \
+            --preview="string replace --regex '^.*?║.*?║ ' '' -- {} | fish_indent --ansi" \
+            --preview-label="command preview" \
+            --header-lines=1 \
+            --reverse \
+            --highlight-line \
+            --border \
+            --print0 |
+        string split0
     )
 
     if test $status -eq 0
@@ -54,6 +70,20 @@ if not type -q atuin; or not type -q fzf
 end
 bind \cr _fzf_atuin_search_history
 ```
+
+Command Line Options
+--------------------
+
+- `--include-deleted`, `-d`: Include deleted commands in the results.
+- `--reverse`, `-r`: Reverse the sort order (oldest first).
+- `--print0`, `-0`: Use null character as record separator. You'll usually want to use this if you're piping to `fzf` where you'll use the `--read0` option.
+- `--cwd <dir>`, `-c`: Limit search to a specific directory (defaults to current directory)
+- `--session <session>`, `-s`: Limit search to a specific session (defaults to `$ATUIN_SESSION`).
+- `--db <path>`: Path to the database file.
+- `--fieldsep <sep>`, `-f`: Field separator for output (defaults to `║`).
+- `--ansi`, `-a`: Enable ANSI color output.
+- `--header`: Print header before the results.
+- `--header-last`: Print header after the results.
 
 License
 -------
