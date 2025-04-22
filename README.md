@@ -32,7 +32,7 @@ That will just show your history and have it return just the command from the ou
 ```fish
 function _fzf_atuin_search_history --description "Use atuin and fzf to search command history. Replace the command line with the selected command."
 
-	# not strictly needed - but these are gruvbox colors for fzf
+    # not strictly needed - but these are gruvbox colors for fzf
     set FZF_DEFAULT_OPTS '--color=bg+:#3c3836,bg:#32302f,spinner:#fb4934,hl:#928374,fg:#ebdbb2,header:#928374,info:#8ec07c,pointer:#fb4934,marker:#fb4934,fg+:#ebdbb2,prompt:#fb4934,hl+:#fb4934'
 
     # use the │  (vertical bar) as separator - note: this is not a pipe
