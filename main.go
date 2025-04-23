@@ -31,6 +31,7 @@ func main() {
 	var ansiEnabled bool
 	var header bool
 	var headerLast bool
+	var hostnameVal string
 
 	pflag.BoolVarP(&includeDeleted, "include-deleted", "d", false, "Include deleted commands")
 	pflag.BoolVarP(&reverseOrder, "reverse", "r", false, "Reverse the sort order (oldest first)")
@@ -42,9 +43,11 @@ func main() {
 	pflag.BoolVarP(&ansiEnabled, "ansi", "a", false, "Enable ANSI colors")
 	pflag.BoolVar(&header, "header", false, "Print header before results")
 	pflag.BoolVar(&headerLast, "header-last", false, "Print header after results")
+	pflag.StringVar(&hostnameVal, "hostname", "", "Filter by hostname (optional, uses $ATUIN_HOST_NAME or system hostname if no value)")
 
 	pflag.Lookup("cwd").NoOptDefVal = getCurrentWorkingDir()
 	pflag.Lookup("session").NoOptDefVal = os.Getenv("ATUIN_SESSION")
+	pflag.Lookup("hostname").NoOptDefVal = getAtuinHostname()
 
 	pflag.Parse()
 
@@ -59,7 +62,7 @@ func main() {
 	}
 
 	// Process the database and output results
-	if err := processHistory(dbPath, includeDeleted, reverseOrder, printNull, cwdDir, session, fieldSeparator, ansiEnabled, header, headerLast); err != nil {
+	if err := processHistory(dbPath, includeDeleted, reverseOrder, printNull, cwdDir, session, fieldSeparator, ansiEnabled, header, headerLast, hostnameVal); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		fmt.Fprintf(os.Stderr, "dbPath: %v\n", dbPath)
 		fmt.Fprintf(os.Stderr, "cwdDir: %v\n", cwdDir)
@@ -70,8 +73,19 @@ func main() {
 		fmt.Fprintf(os.Stderr, "header: %v\n", header)
 		fmt.Fprintf(os.Stderr, "ansiEnabled: %v\n", ansiEnabled)
 		fmt.Fprintf(os.Stderr, "header-last: %v\n", headerLast)
+		fmt.Fprintf(os.Stderr, "hostname: %v\n", hostnameVal)
 		os.Exit(1)
 	}
+}
+
+func getAtuinHostname() string {
+	// Use environment variable or fallback to system hostname
+	if env := os.Getenv("ATUIN_HOST_NAME"); env != "" {
+		return env
+	} else if sys, err := os.Hostname(); err == nil {
+		return sys
+	}
+	return "unknown-host"
 }
 
 func getCurrentWorkingDir() string {
@@ -83,7 +97,7 @@ func getCurrentWorkingDir() string {
 	return dir
 }
 
-func processHistory(dbPath string, includeDeleted, reverseOrder, printNull bool, cwdDir string, session string, fieldSeparator string, ansiEnabled bool, header bool, headerLast bool) error {
+func processHistory(dbPath string, includeDeleted, reverseOrder, printNull bool, cwdDir string, session string, fieldSeparator string, ansiEnabled bool, header bool, headerLast bool, hostnameVal string) error {
 	whereClausePresent := false
 
 	// Open the database
@@ -117,6 +131,18 @@ func processHistory(dbPath string, includeDeleted, reverseOrder, printNull bool,
 		}
 		query += " session = ?"
 		args = append(args, session)
+		whereClausePresent = true
+	}
+	// Filter by hostname if provided
+	if hostnameVal != "" {
+		if !whereClausePresent {
+			query += " WHERE"
+		} else {
+			query += " AND"
+		}
+		query += " hostname LIKE ?"
+		args = append(args, hostnameVal+":%")
+		whereClausePresent = true
 	}
 
 	// Execute the query
